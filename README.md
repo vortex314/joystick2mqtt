@@ -1,4 +1,13 @@
 # Cheap PS4 console to MQTT
+## Architecture
+![Architecture](doc/architecture.png)
+```
+mqtt.from("src/pi3/js0/axis0") >> scale(-32767,+32767,-90,90) >> mqtt.to("dst/robot/steer/angle") 
+mqtt.from("src/pi3/js0/axis1") >> scale(-32767,+32767,-4,+4) >> mqtt.to("dst/robot/drive/speed")
+mqtt.from("src/pi3/js0/alive") >> negate >> mqtt.to("dst/robot/freeze")
+```
+## Controls on PS4 controller clone
+![Architecture](doc/controls.png)
 ## Creating dev environment
 ### Hardware
 Install Bluetooth  dongle or use inbuild raspberry pi

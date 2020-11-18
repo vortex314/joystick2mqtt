@@ -1,19 +1,44 @@
 # Cheap PS4 console to MQTT
 ## Architecture
 ![Architecture](doc/architecture.png)
+### Scala code
 ```
 mqtt.from("src/pi3/js0/axis0") >> scale(-32767,+32767,-90,90) >> mqtt.to("dst/robot/steer/angle") 
 mqtt.from("src/pi3/js0/axis1") >> scale(-32767,+32767,-4,+4) >> mqtt.to("dst/robot/drive/speed")
 mqtt.from("src/pi3/js0/alive") >> negate >> mqtt.to("dst/robot/freeze")
 ```
-## Controls on PS4 controller clone
+
+## Controls on joystick
 ![Architecture](doc/controls.png)
-## Creating dev environment
+
+### Naming convention in MQTT topics
+```
+src/<host>/<joystick_device>/buttonx => 0 or 1
+src/<host>/<joystick_device>/axisx  => -32767 => 32767
+```
+## Deployment
 ### Hardware
 Install Bluetooth  dongle or use inbuild raspberry pi
-### Software
+### Pair Bluetooth device with Linux
 sudo apt-get install bluez libbluetooth-dev
-
+### Build software
+``` 
+git clone https://github.com/vortex314/joystick2mqtt
+git clone https://github.com/vortex314/Common
+git clone https://github.com/eclipse/paho.mqtt.c
+cd Common
+make -f Common.mk
+cd ../paho.mqtt.c
+cp ../joystick2mqtt/makePaho.sh
+./makePaho.sh
+cd ../joystick2mqtt
+cp makePaho.sh ../paho.mqtt.c
+make -f joystick2mqtt.mk 
+```
+### Run it
+```
+./Debug/joystick2mqtt
+```
 # Config
 8C:41:F2:D2:E5:48  PS4 Host
 # remote wakeup
@@ -23,7 +48,7 @@ sudo hcitool cc 8C:41:F2:D2:E5:48
 - Bluetooth API on Linux http://people.csail.mit.edu/albert/bluez-intro/c404.html
 - PS4 protocol : https://www.psdevwiki.com/ps4/DS4-BT
 - the simple answer : https://stackoverflow.com/questions/47750204/interface-playstation-dualshock-4-ds4-controller-on-linux-using-c/47909635#47909635- the simple answer
-# My PS4
+# My PS4 Mac Address
 8C:41:F2:D2:E5:48
 ```
 $ hcitool info 8C:41:F2:D2:E5:48

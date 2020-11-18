@@ -36,7 +36,7 @@ ObjectsFileList        :="joystick2mqtt.txt"
 PCHCompileFlags        :=
 MakeDirCommand         :=mkdir -p
 LinkOptions            :=  -l:libpaho-mqtt3c.a
-IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch). $(IncludeSwitch)../Common $(IncludeSwitch)../paho.mqtt.c/src $(IncludeSwitch)../ArduinoJson/src 
+IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch)src $(IncludeSwitch)../Common $(IncludeSwitch)../paho.mqtt.c/src $(IncludeSwitch)../ArduinoJson/src 
 IncludePCH             := 
 RcIncludePath          := 
 Libs                   := $(LibrarySwitch)Common $(LibrarySwitch)pthread 
@@ -60,7 +60,7 @@ AS       := /usr/bin/as
 ## User defined environment variables
 ##
 CodeLiteDir:=/usr/share/codelite
-Objects0=$(IntermediateDirectory)/Main.cpp$(ObjectSuffix) $(IntermediateDirectory)/Timer.cpp$(ObjectSuffix) $(IntermediateDirectory)/Sys.cpp$(ObjectSuffix) $(IntermediateDirectory)/Joystick2Mqtt.cpp$(ObjectSuffix) 
+Objects0=$(IntermediateDirectory)/src_Joystick2Mqtt.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_Timer.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_Main.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_Sys.cpp$(ObjectSuffix) 
 
 
 
@@ -91,37 +91,37 @@ PreBuild:
 ##
 ## Objects
 ##
-$(IntermediateDirectory)/Main.cpp$(ObjectSuffix): Main.cpp $(IntermediateDirectory)/Main.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/lieven/workspace/joystick2mqtt/Main.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/Main.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/Main.cpp$(DependSuffix): Main.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/Main.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/Main.cpp$(DependSuffix) -MM Main.cpp
+$(IntermediateDirectory)/src_Joystick2Mqtt.cpp$(ObjectSuffix): src/Joystick2Mqtt.cpp $(IntermediateDirectory)/src_Joystick2Mqtt.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/lieven/workspace/joystick2mqtt/src/Joystick2Mqtt.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_Joystick2Mqtt.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_Joystick2Mqtt.cpp$(DependSuffix): src/Joystick2Mqtt.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_Joystick2Mqtt.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_Joystick2Mqtt.cpp$(DependSuffix) -MM src/Joystick2Mqtt.cpp
 
-$(IntermediateDirectory)/Main.cpp$(PreprocessSuffix): Main.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/Main.cpp$(PreprocessSuffix) Main.cpp
+$(IntermediateDirectory)/src_Joystick2Mqtt.cpp$(PreprocessSuffix): src/Joystick2Mqtt.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_Joystick2Mqtt.cpp$(PreprocessSuffix) src/Joystick2Mqtt.cpp
 
-$(IntermediateDirectory)/Timer.cpp$(ObjectSuffix): Timer.cpp $(IntermediateDirectory)/Timer.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/lieven/workspace/joystick2mqtt/Timer.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/Timer.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/Timer.cpp$(DependSuffix): Timer.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/Timer.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/Timer.cpp$(DependSuffix) -MM Timer.cpp
+$(IntermediateDirectory)/src_Timer.cpp$(ObjectSuffix): src/Timer.cpp $(IntermediateDirectory)/src_Timer.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/lieven/workspace/joystick2mqtt/src/Timer.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_Timer.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_Timer.cpp$(DependSuffix): src/Timer.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_Timer.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_Timer.cpp$(DependSuffix) -MM src/Timer.cpp
 
-$(IntermediateDirectory)/Timer.cpp$(PreprocessSuffix): Timer.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/Timer.cpp$(PreprocessSuffix) Timer.cpp
+$(IntermediateDirectory)/src_Timer.cpp$(PreprocessSuffix): src/Timer.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_Timer.cpp$(PreprocessSuffix) src/Timer.cpp
 
-$(IntermediateDirectory)/Sys.cpp$(ObjectSuffix): Sys.cpp $(IntermediateDirectory)/Sys.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/lieven/workspace/joystick2mqtt/Sys.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/Sys.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/Sys.cpp$(DependSuffix): Sys.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/Sys.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/Sys.cpp$(DependSuffix) -MM Sys.cpp
+$(IntermediateDirectory)/src_Main.cpp$(ObjectSuffix): src/Main.cpp $(IntermediateDirectory)/src_Main.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/lieven/workspace/joystick2mqtt/src/Main.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_Main.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_Main.cpp$(DependSuffix): src/Main.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_Main.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_Main.cpp$(DependSuffix) -MM src/Main.cpp
 
-$(IntermediateDirectory)/Sys.cpp$(PreprocessSuffix): Sys.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/Sys.cpp$(PreprocessSuffix) Sys.cpp
+$(IntermediateDirectory)/src_Main.cpp$(PreprocessSuffix): src/Main.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_Main.cpp$(PreprocessSuffix) src/Main.cpp
 
-$(IntermediateDirectory)/Joystick2Mqtt.cpp$(ObjectSuffix): Joystick2Mqtt.cpp $(IntermediateDirectory)/Joystick2Mqtt.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/lieven/workspace/joystick2mqtt/Joystick2Mqtt.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/Joystick2Mqtt.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/Joystick2Mqtt.cpp$(DependSuffix): Joystick2Mqtt.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/Joystick2Mqtt.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/Joystick2Mqtt.cpp$(DependSuffix) -MM Joystick2Mqtt.cpp
+$(IntermediateDirectory)/src_Sys.cpp$(ObjectSuffix): src/Sys.cpp $(IntermediateDirectory)/src_Sys.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/lieven/workspace/joystick2mqtt/src/Sys.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_Sys.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_Sys.cpp$(DependSuffix): src/Sys.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_Sys.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_Sys.cpp$(DependSuffix) -MM src/Sys.cpp
 
-$(IntermediateDirectory)/Joystick2Mqtt.cpp$(PreprocessSuffix): Joystick2Mqtt.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/Joystick2Mqtt.cpp$(PreprocessSuffix) Joystick2Mqtt.cpp
+$(IntermediateDirectory)/src_Sys.cpp$(PreprocessSuffix): src/Sys.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_Sys.cpp$(PreprocessSuffix) src/Sys.cpp
 
 
 -include $(IntermediateDirectory)/*$(DependSuffix)

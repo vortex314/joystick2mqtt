@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="joystick2mqtt" Version="10.0.0" InternalType="Console">
+  <VirtualDirectory Name="src">
+    <File Name="src/joystick2mqtt.json"/>
+    <File Name="src/Timer.h"/>
+    <File Name="src/Timer.cpp"/>
+    <File Name="src/Sys.cpp"/>
+    <File Name="src/Main.cpp"/>
+    <File Name="src/Joystick2Mqtt.h"/>
+    <File Name="src/Joystick2Mqtt.cpp"/>
+  </VirtualDirectory>
   <Reconciliation>
     <Regexes/>
     <Excludepaths/>
@@ -11,18 +20,6 @@
   </Reconciliation>
   <Description/>
   <Dependencies/>
-  <VirtualDirectory Name="inc">
-    <File Name="Joystick2Mqtt.h"/>
-    <File Name="main_labels.h"/>
-    <File Name="Timer.h"/>
-  </VirtualDirectory>
-  <VirtualDirectory Name="src">
-    <File Name="Debug/joystick2mqtt.json"/>
-    <File Name="Joystick2Mqtt.cpp"/>
-    <File Name="Timer.cpp"/>
-    <File Name="Sys.cpp"/>
-    <File Name="Main.cpp"/>
-  </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -35,7 +32,7 @@
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-g;-O0;-Wall" C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
-        <IncludePath Value="."/>
+        <IncludePath Value="src"/>
         <IncludePath Value="../Common"/>
         <IncludePath Value="../paho.mqtt.c/src"/>
         <IncludePath Value="../ArduinoJson/src"/>

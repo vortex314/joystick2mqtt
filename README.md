@@ -11,7 +11,9 @@ As I wanted a readable way to do the wiring between the sensors
 and the actuators, I developed a small Scala and C++ framework. 
 C++ runs on the IoT device, the scala part runs on the Raspberry Pi.
 The code and behaviour is similar and reads as a flow of events left to right. 
-[](https://github.com/vortex314/tinyAkka)
+[tinyAkka Scala ](https://github.com/vortex314/tinyAkka) ,
+[nanoAkka  C++](https://github.com/vortex314/nanoAkka)
+Ultimate goal is that there is no need of a remote controller, and the fully automated version will be controlled in Scala. 
 ```
 mqtt.from("src/pi3/js0/axis0") >> scale(-32767,+32767,-90,90) >> mqtt.to("dst/robot/steer/angle") 
 mqtt.from("src/pi3/js0/axis1") >> scale(-32767,+32767,-4,+4) >> mqtt.to("dst/robot/drive/speed")

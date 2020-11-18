@@ -60,6 +60,9 @@ class Joystick2Mqtt {
 		bool _mqttWillRetained;
 		string _mqttProgrammerTopic;
 		uint64_t _startTime;
+        string _topic;
+        string _value;
+        Bytes _msg;
 
 //	bool _mqttConnected=false;
 		string _mqttSubscribedTo;

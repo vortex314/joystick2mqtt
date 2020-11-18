@@ -1,1 +1,1 @@
-./Debug/src_Joystick2Mqtt.cpp.o ./Debug/src_Timer.cpp.o ./Debug/src_Main.cpp.o ./Debug/src_Sys.cpp.o
+./Debug/src_Sys.cpp.o ./Debug/src_Timer.cpp.o ./Debug/src_Joystick2Mqtt.cpp.o ./Debug/src_Main.cpp.o

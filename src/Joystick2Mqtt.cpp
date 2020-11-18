@@ -20,7 +20,7 @@ const char* signalString[] = {"PIPE_ERROR",
 #define USB() logger.application(_device.c_str())
 
 Joystick2Mqtt::Joystick2Mqtt()
-	: _deviceBuffer(2048),_jsonDocument() {
+	: _deviceBuffer(2048),_jsonDocument(),_msg(1024) {
 	_mqttConnectionState = MS_DISCONNECTED;
 }
 
@@ -278,7 +278,6 @@ void Joystick2Mqtt::deviceDisconnect() {
 void Joystick2Mqtt::deviceRxd() {
 	if(!_deviceConnected) return;
 	int erc;
-    string topic,value;
 
 	while(true) {
         /*
@@ -301,16 +300,16 @@ void Joystick2Mqtt::deviceRxd() {
             switch(js.type & ~JS_EVENT_INIT) {
 			case JS_EVENT_BUTTON:
                 INFO(" button : %d = %d ",js.number,js.value);
-                string_format(topic,"%s/button%d",_mqttSrc.c_str(),js.number);
-                string_format(value,"%d",js.value);
-                mqttPublish(topic,value, 0, 0);
+                string_format(_topic,"%s/button%d",_mqttSrc.c_str(),js.number);
+                string_format(_value,"%d",js.value);
+                mqttPublish(_topic,_value, 0, 0);
 				_button[js.number] = js.value;
 				break;
 			case JS_EVENT_AXIS:
                 INFO(" axis : %d = %d ",js.number,js.value);
-                string_format(topic,"%s/axis%d",_mqttSrc.c_str(),js.number);
-                string_format(value,"%d",js.value);
-                mqttPublish(topic,value, 0, 0);
+                string_format(_topic,"%s/axis%d",_mqttSrc.c_str(),js.number);
+                string_format(_value,"%d",js.value);
+                mqttPublish(_topic,_value, 0, 0);
 				_axis[js.number] = js.value;
 				break;
 			}
@@ -610,10 +609,9 @@ void Joystick2Mqtt::onSubscribeFailure(void* context, MQTTAsync_failureData* res
 }
 
 void Joystick2Mqtt::mqttPublish(string topic, string message, int qos, bool retained) {
-	Bytes msg(1024);
 	DEBUG(" MQTT PUB : %s = %s ", topic.c_str(), message.c_str());
-	msg = message.c_str();
-	mqttPublish(topic, msg, qos, retained);
+	_msg = message.c_str();
+	mqttPublish(topic, _msg, qos, retained);
 }
 
 void Joystick2Mqtt::mqttPublish(string topic, Bytes message, int qos, bool retained) {

@@ -42,7 +42,7 @@ void Joystick2Mqtt::init() {
 	_mqttWillQos = 0;
 	_mqttWillRetained = false;
 	_mqttSubscribedTo = "dst/" + _mqttDevice + "/#";
-	_mqttClientId = _mqttDevice + std::to_string(getpid());
+	_mqttClientId = _mqttObject + std::to_string(getpid());
     INFO(" MQTT device : %s object : %s ",_mqttDevice.c_str(),_mqttObject.c_str());
     string willTopicDefault;
     string_format(willTopicDefault,"src/%s/%s/alive",_mqttDevice.c_str(),_mqttObject);
@@ -570,7 +570,7 @@ int Joystick2Mqtt::onMessage(void* context, char* topicName, int topicLen, MQTTA
 	Bytes msg((uint8_t*)message->payload, message->payloadlen);
 	string topic(topicName, topicLen);
 
-	
+	INFO(" did I just receive a message ?? ");
 
 	MQTTAsync_freeMessage(&message);
 	MQTTAsync_free(topicName);

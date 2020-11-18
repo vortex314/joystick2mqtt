@@ -1,7 +1,7 @@
 # Cheap PS4 console to MQTT
 ## Creating dev environment
 ### Hardware
-Install BT dongle 
+Install Bluetooth  dongle or use inbuild raspberry pi
 ### Software
 sudo apt-get install bluez libbluetooth-dev
 

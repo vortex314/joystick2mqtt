@@ -62,17 +62,20 @@ void Joystick2Mqtt::threadFunction(void* pv) { run(); }
 void Joystick2Mqtt::run() {
 	string line;
 	Timer mqttConnectTimer;
-	Timer serialConnectTimer;
+	Timer deviceConnectTimer;
 	Timer mqttPublishTimer;
-	Timer serialTimer;
+	Timer deviceTimer;
 
 	mqttConnectTimer.atInterval(2000).doThis([this]() {
-		if(_mqttConnectionState != MS_CONNECTING) {
+		if(_mqttConnectionState == MS_DISCONNECTED) {
 			mqttConnect();
 		}
 	});
-	serialConnectTimer.atInterval(5000).doThis([this]() {
-		if(!_deviceConnected) {
+	deviceConnectTimer.atInterval(5000).doThis([this]() {
+		if(_deviceConnected) {
+			mqttPublish("src/" + _mqttDevice + "/"+_mqttObject+"/alive", "true", 0, 0);
+		} else {
+			mqttPublish("src/" + _mqttDevice + "/"+_mqttObject+"/alive", "false", 0, 0);
 			deviceConnect();
 		}
 	});
@@ -82,14 +85,14 @@ void Joystick2Mqtt::run() {
 		mqttPublish("src/" + _mqttDevice + "/system/upTime", sUpTime, 0, 0);
 		mqttPublish("src/" + _mqttDevice + "/"+_mqttObject, _device, 0, 0);
 	});
-	serialTimer.atDelta(5000).doThis([this]() {
+	deviceTimer.atDelta(5000).doThis([this]() {
 		if(_deviceConnected) {
 			deviceDisconnect();
 			WARN(" disconnecting serial no new data received in %d msec", 5000);
 			deviceConnect();
 		}
 	});
-	if(_mqttConnectionState != MS_CONNECTING) mqttConnect();
+	if(_mqttConnectionState == MS_DISCONNECTED) mqttConnect();
 	deviceConnect();
 	while(true) {
 		while(true) {
@@ -97,23 +100,16 @@ void Joystick2Mqtt::run() {
 
 	//		INFO("signal = %s", signalString[s]);
 			mqttConnectTimer.check();
-			serialTimer.check();
+			deviceTimer.check();
 			mqttPublishTimer.check();
-			serialConnectTimer.check();
+			deviceConnectTimer.check();
 			switch(s) {
 				case TIMEOUT: {
-						if(!_deviceConnected) {
-							//						serialConnect();
-						}
 						break;
 					}
 				case DEVICE_RXD: {
 						deviceRxd();
-						if(deviceGetBlock(line)) {
-							serialTimer.atDelta(5000);
-							deviceHandleBlock(line);
-							line.clear();
-						}
+						deviceTimer.atDelta(5000);
 						break;
 					}
 				case DEVICE_ERROR: {
@@ -279,21 +275,7 @@ void Joystick2Mqtt::deviceRxd() {
 	if(!_deviceConnected) return;
 	int erc;
 
-	while(true) {
-        /*
-		struct JS_DATA_TYPE js;
-        erc = read(_deviceFd, &js, JS_RETURN) ;
-		if(erc == JS_RETURN ) {
-            INFO("Axes: X:%3d Y:%3d Buttons: A:%s B:%s\r",
-				js.x, js.y, (js.buttons & 1) ? "on " : "off", (js.buttons & 2) ? "on " : "off");
-		} else if(erc < 0) {
-			if(errno == EAGAIN || errno == EWOULDBLOCK) return;
-			DEBUG(" read returns %d => errno : %d = %s", erc, errno, strerror(errno));
-			signal(DEVICE_ERROR);
-		} else {
-			return;
-		}*/
-        
+	while(true) {      
         struct js_event js;
         erc = read(_deviceFd, &js, sizeof(struct js_event)) ;
 		if(erc == sizeof(struct js_event)) {
@@ -313,19 +295,6 @@ void Joystick2Mqtt::deviceRxd() {
 				_axis[js.number] = js.value;
 				break;
 			}
-            
-       /*     if (_axes) {
-				printf("Axes: ");
-				for (i = 0; i < _axes; i++)
-					printf("%2d:%6d ", i, _axis[i]);
-			}
-
-			if (_buttons) {
-				printf("Buttons: ");
-				for (i = 0; i < _buttons; i++)
-					printf("%2d:%s ", i, _button[i] ? "on " : "off");
-			}
-            			fflush(stdout);*/
 
 		} else if(erc < 0) {
 			if(errno == EAGAIN || errno == EWOULDBLOCK) return;
@@ -338,23 +307,7 @@ void Joystick2Mqtt::deviceRxd() {
 	}
 }
 
-bool Joystick2Mqtt::deviceGetBlock(string& line) {
-	if(!_deviceConnected) return false;
-	while(_deviceBuffer.hasData()) {
-		char ch = _deviceBuffer.read();
-		if(ch == '\n') {
-			return true;
-		} else if(ch == '\r') {
-		} else {
-			if(line.length() > 1024) {
-				line.clear();
-				WARN(" %s buffer garbage  > 1024 flushed ", _device.c_str());
-			}
-			line += ch;
-		}
-	}
-	return false;
-}
+
 
 std::vector<string> split(const string& text, char sep) {
 	std::vector<string> tokens;
@@ -367,38 +320,7 @@ std::vector<string> split(const string& text, char sep) {
 	return tokens;
 }
 
-unsigned short crc16(const unsigned char* data_p, unsigned char length) {
-	unsigned char x;
-	unsigned short crc = 0xFFFF;
 
-	while(length--) {
-		x = crc >> 8 ^ *data_p++;
-		x ^= x >> 4;
-		crc = (crc << 8) ^ ((unsigned short)(x << 12)) ^ ((unsigned short)(x << 5)) ^ ((unsigned short)x);
-	}
-	return crc;
-}
-/*
-	* extract CRC and verify in syntax => ["ABCD",2,..]
- */
-bool Joystick2Mqtt::checkCrc(std::string& line) {
-	if(line.length() < 9) return false;
-	std::string crcStr = line.substr(2, 4);
-	uint32_t crcFound;
-	sscanf(crcStr.c_str(), "%4X", &crcFound);
-	std::string line2 = line.substr(0, 2) + "0000" + line.substr(6, string::npos);
-	uint32_t crcCalc = crc16((uint8_t*)line2.data(), line2.length());
-	return crcCalc == crcFound;
-}
-
-void Joystick2Mqtt::genCrc(std::string& line) {
-	uint32_t crcCalc = crc16((uint8_t*)line.data(), line.length());
-	char hexCrc[5];
-	sprintf(hexCrc, "%4.4X", crcCalc);
-	std::string lineCopy = "[\"";
-	lineCopy += hexCrc + line.substr(6, string::npos);
-	line = lineCopy.c_str();
-}
 
 /*
  * JSON protocol : [CRC,CMD,TOPIC,MESSAGE,QOS,RETAIN]
@@ -411,69 +333,7 @@ void Joystick2Mqtt::genCrc(std::string& line) {
 
 typedef enum { SUBSCRIBE = 0, PUBLISH} CMD;
 
-void Joystick2Mqtt::deviceHandleBlock(string& line) {
-	std::vector<string> token;
-	_jsonDocument.clear();
-	if(_protocol == JSON_ARRAY && line.length() > 2 && line[0] == '[' && line[line.length() - 1] == ']') {
-		deserializeJson(_jsonDocument, line);
-		if(_jsonDocument.is<JsonArray>()) {
-			JsonArray array = _jsonDocument.as<JsonArray>();
-			int cmd = array[0];
-			if(cmd == PUBLISH) {
-				std::string topic = array[1];
-				std::string message = array[2];
-				uint32_t qos=0;
-				if ( array.size()>3 )  qos = array[3];
-				bool retained = false;
-				if ( array.size()> 4) retained = array[4];
-				mqttPublish(topic, message, qos, retained);
-				return;
-			} else if(cmd == SUBSCRIBE) {
-				std::string topic = array[1];
-				mqttSubscribe(topic);
-				return;
-			}
-		}
-	} else if(_protocol == JSON_OBJECT && line.length() > 2 && line[0] == '{' && line[line.length() - 1] == '}') {
-		deserializeJson(_jsonDocument, line);
-		if(_jsonDocument.is<JsonObject>()) {
-			JsonObject json = _jsonDocument.as<JsonObject>();
-			if(json.containsKey("cmd")) {
-				string cmd = json["cmd"];
-				if(cmd.compare("MQTT-PUB") == 0 && json.containsKey("topic") && json.containsKey("message")) {
-					int qos = 0;
-					bool retained = false;
-					string topic = json["topic"];
-					token = split(topic, '/');
-					if(token[1].compare(_mqttDevice) != 0) {
-						WARN(" subscribed topic differ %s <> %s ", token[1].c_str(), _mqttDevice.c_str());
-						_mqttDevice = token[1];
-						_mqttSubscribedTo = "dst/" + _mqttDevice + "/#";
-						mqttSubscribe(_mqttSubscribedTo);
-					}
-					string message = json["message"];
-					/*                    Bytes msg(1024);
-					                    msg.append((uint8_t*)message.c_str(),message.length());*/
-					mqttPublish(topic, message, qos, retained);
-					return;
-				} else if(cmd.compare("MQTT-SUB") == 0 && json.containsKey("topic")) {
-					string topic = json["topic"];
-					mqttSubscribe(topic);
-					return;
-				} else {
-					WARN(" invalid command from device : %s", line.c_str());
-				}
-			}
-		}
-	}
-	fprintf(stdout, "%s\n", line.c_str());
-	if(_logFd != NULL) {
-		fprintf(_logFd, "%s\n", line.c_str());
-		fflush(_logFd);
-	}
 
-	mqttPublish("src/" + _device + "/joystick2mqtt/log", line, 0, false);
-}
 
 
 

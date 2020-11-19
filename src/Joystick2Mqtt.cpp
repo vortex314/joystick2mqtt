@@ -88,7 +88,7 @@ void Joystick2Mqtt::run() {
 	deviceTimer.atDelta(5000).doThis([this]() {
 		if(_deviceConnected) {
 			deviceDisconnect();
-			WARN(" disconnecting serial no new data received in %d msec", 5000);
+			WARN(" disconnecting device no new data received in %d msec", 5000);
 			deviceConnect();
 		}
 	});
@@ -187,7 +187,7 @@ Joystick2Mqtt::Signal Joystick2Mqtt::waitSignal(uint32_t timeout) {
 	tv.tv_sec = 1;
 	tv.tv_usec = (delta * 1000) % 1000000;
 
-	// Watch serialFd and tcpFd  to see when it has input.
+	// Watch deviceFd and tcpFd  to see when it has input.
 	FD_ZERO(&rfds);
 	FD_ZERO(&wfds);
 	FD_ZERO(&efds);
@@ -216,7 +216,7 @@ Joystick2Mqtt::Signal Joystick2Mqtt::waitSignal(uint32_t timeout) {
 			returnSignal = (Signal)buffer;
 		}
 		if(FD_ISSET(_deviceFd, &efds)) {
-			WARN("serial  error : %s (%d)", strerror(errno), errno);
+			WARN("device  error : %s (%d)", strerror(errno), errno);
 			returnSignal = DEVICE_ERROR;
 		}
 		if(FD_ISSET(_signalFd[0], &efds)) {
@@ -306,21 +306,6 @@ void Joystick2Mqtt::deviceRxd() {
         
 	}
 }
-
-
-
-std::vector<string> split(const string& text, char sep) {
-	std::vector<string> tokens;
-	std::size_t start = 0, end = 0;
-	while((end = text.find(sep, start)) != string::npos) {
-		tokens.push_back(text.substr(start, end - start));
-		start = end + 1;
-	}
-	tokens.push_back(text.substr(start));
-	return tokens;
-}
-
-
 
 /*
  * JSON protocol : [CRC,CMD,TOPIC,MESSAGE,QOS,RETAIN]

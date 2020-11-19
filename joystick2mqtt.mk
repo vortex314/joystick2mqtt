@@ -60,7 +60,7 @@ AS       := /usr/bin/as
 ## User defined environment variables
 ##
 CodeLiteDir:=/usr/share/codelite
-Objects0=$(IntermediateDirectory)/src_Sys.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_Timer.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_Joystick2Mqtt.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_Main.cpp$(ObjectSuffix) 
+Objects0=$(IntermediateDirectory)/src_Sys.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_Timer.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_Joystick2Mqtt.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_Main.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_Mqtt.cpp$(ObjectSuffix) 
 
 
 
@@ -122,6 +122,14 @@ $(IntermediateDirectory)/src_Main.cpp$(DependSuffix): src/Main.cpp
 
 $(IntermediateDirectory)/src_Main.cpp$(PreprocessSuffix): src/Main.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_Main.cpp$(PreprocessSuffix) src/Main.cpp
+
+$(IntermediateDirectory)/src_Mqtt.cpp$(ObjectSuffix): src/Mqtt.cpp $(IntermediateDirectory)/src_Mqtt.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/lieven/workspace/joystick2mqtt/src/Mqtt.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_Mqtt.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_Mqtt.cpp$(DependSuffix): src/Mqtt.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_Mqtt.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_Mqtt.cpp$(DependSuffix) -MM src/Mqtt.cpp
+
+$(IntermediateDirectory)/src_Mqtt.cpp$(PreprocessSuffix): src/Mqtt.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_Mqtt.cpp$(PreprocessSuffix) src/Mqtt.cpp
 
 
 -include $(IntermediateDirectory)/*$(DependSuffix)

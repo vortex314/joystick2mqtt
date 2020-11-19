@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="joystick2mqtt" Version="10.0.0" InternalType="Console">
   <VirtualDirectory Name="src">
+    <File Name="src/Mqtt.h"/>
+    <File Name="src/Mqtt.cpp"/>
     <File Name="src/joystick2mqtt.json"/>
     <File Name="src/Timer.h"/>
     <File Name="src/Timer.cpp"/>

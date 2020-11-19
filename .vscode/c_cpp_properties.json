@@ -1,0 +1,23 @@
+{
+    "configurations": [
+        {
+            "name": "ESP32",
+            "includePath": [
+                "${workspaceFolder}/../Common/",
+                "${workspaceFolder}/../ArduinoJson/src/",
+                "${workspaceFolder}/../paho.mqtt.c/src/",
+                "${workspaceFolder}/src/"
+            ],
+            "defines": [
+                "NOTHING"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "clang-x64",
+            "forcedInclude": [],
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}

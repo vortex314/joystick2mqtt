@@ -1,11 +1,10 @@
 # Cheap PS4 console to MQTT
+## Architecture
+![Architecture](doc/architecture.png)
 ## Purpose
 Ever wanted an easy way to control your IOT devices, this is an easy way forward !
 Just buy one of these dirt cheap PS4 wireless controller clones and link it to your project via joystick2mqtt. 
-## Architecture
-![Architecture](doc/architecture.png)
 ![Architecture](doc/joystick2mqtt.png)
-
 ### Scala code
 As I wanted a readable way to do the wiring between the sensors 
 and the actuators, I developed a small Scala and C++ framework. 

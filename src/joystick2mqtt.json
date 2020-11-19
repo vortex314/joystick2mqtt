@@ -6,7 +6,7 @@
         "willTopic":"src/pcdell/js0/alive"
     },
     "joystick": {
-        "devices" : ["/dev/input/js0","/dev/input/js1"],
-        "timeout" : 100000
+        "devices" : ["/dev/input/js0"],
+        "timeout" : 1000
     }
 }

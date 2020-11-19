@@ -50,13 +50,6 @@ class Joystick2Mqtt {
   string _mqttObject;  // jsx
   string _mqttSrc;
   string _mqttClientId;
-  string _mqttConnection;
-  uint32_t _mqttKeepAliveInterval;
-  string _mqttWillMessage;
-  std::string _mqttWillTopic;
-  uint16_t _mqttWillQos;
-  bool _mqttWillRetained;
-  string _mqttProgrammerTopic;
   uint64_t _startTime;
   string _topic;
   string _value;
@@ -109,8 +102,6 @@ class Joystick2Mqtt {
   Erc deviceConnect();
   void deviceDisconnect();
   void deviceRxd();
-
-  
 };
 
 #endif  // SERIAL2MQTT_H

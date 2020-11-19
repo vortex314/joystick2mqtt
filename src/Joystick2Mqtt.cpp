@@ -2,9 +2,9 @@
 const char* signalString[] = {"PIPE_ERROR",
                               "SELECT_ERROR",
                               "DEVICE_CONNECT",
-                              "DEVICE__DISCONNECT",
-                              "DEVICE__RXD",
-                              "DEVICE__ERROR",
+                              "DEVICE_DISCONNECT",
+                              "DEVICE_RXD",
+                              "DEVICE_ERROR",
                               "MQTT_CONNECT_SUCCESS",
                               "MQTT_CONNECT_FAIL",
                               "MQTT_SUBSCRIBE_SUCCESS",
@@ -17,8 +17,7 @@ const char* signalString[] = {"PIPE_ERROR",
                               "TIMEOUT"};
 
 Joystick2Mqtt::Joystick2Mqtt()
-    : _deviceBuffer(2048), _jsonDocument(), _msg(1024) {
-}
+    : _deviceBuffer(2048), _jsonDocument(), _msg(1024) {}
 
 Joystick2Mqtt::~Joystick2Mqtt() {}
 
@@ -30,16 +29,10 @@ void Joystick2Mqtt::setLogFd(FILE* logFd) { _logFd = logFd; }
 
 void Joystick2Mqtt::init() {
   _startTime = Sys::millis();
-  _config.setNameSpace("mqtt");
-  _config.get("connection", _mqttConnection, "tcp://localhost:1883");
-  _config.get("keepAliveInterval", _mqttKeepAliveInterval, 5);
-  _config.get("willMessage", _mqttWillMessage, "false");
   _mqttDevice = Sys::hostname();
   int offset = _device.find_last_of('/');
   _mqttObject = _device.substr(offset + 1);
   _mqttSrc = "src/" + _mqttDevice + "/" + _mqttObject;
-  _mqttWillQos = 0;
-  _mqttWillRetained = false;
   _mqttSubscribedTo = "dst/" + _mqttDevice + "/#";
   _mqttClientId = _mqttObject + std::to_string(getpid());
   INFO(" MQTT device : %s object : %s ", _mqttDevice.c_str(),
@@ -47,12 +40,13 @@ void Joystick2Mqtt::init() {
   string willTopicDefault;
   string_format(willTopicDefault, "src/%s/%s/alive", _mqttDevice.c_str(),
                 _mqttObject);
-  _config.get("willTopic", _mqttWillTopic, willTopicDefault.c_str());
 
-  mqtt.lastWill(_mqttWillTopic, "false", 1, false);
   if (pipe(_signalFd) < 0) {
     INFO("Failed to create pipe: %s (%d)", strerror(errno), errno);
   }
+
+  JsonObject jo = _config.root()["mqtt"];
+  mqtt.config(jo);
   mqtt.onStateChange(this, [](void* context, Mqtt::MqttConnectionState state) {
     Joystick2Mqtt* me = (Joystick2Mqtt*)context;
     me->signal(state == Mqtt::MS_DISCONNECTED ? MQTT_DISCONNECTED
@@ -83,14 +77,14 @@ void Joystick2Mqtt::run() {
     }
   });
   deviceConnectTimer.atInterval(5000).doThis([this]() {
-    if (!_deviceConnected) {
+    if (!_deviceConnected && mqtt.state() == Mqtt::MS_CONNECTED) {
       deviceConnect();
     }
   });
   mqttPublishTimer.atInterval(1000).doThis([this]() {
     std::string sUpTime = std::to_string((Sys::millis() - _startTime) / 1000);
     mqtt.publish("src/" + _mqttDevice + "/" + _mqttObject + "/alive", "true", 0,
-                0);
+                 0);
     mqtt.publish("src/" + _mqttDevice + "/system/upTime", sUpTime, 0, 0);
     mqtt.publish("src/" + _mqttDevice + "/" + _mqttObject, _device, 0, 0);
   });
@@ -104,10 +98,9 @@ void Joystick2Mqtt::run() {
       INFO(" %s exists ", _device.c_str());
     }
     mqtt.publish("src/" + _mqttDevice + "/" + _mqttObject + "/connected",
-                _deviceConnected ? "true" : "false", 0, 0);
+                 _deviceConnected ? "true" : "false", 0, 0);
   });
   if (mqtt.state() == Mqtt::MS_DISCONNECTED) mqtt.connect();
-  deviceConnect();
   while (true) {
     while (true) {
       Signal s = waitSignal(1000);
@@ -132,10 +125,12 @@ void Joystick2Mqtt::run() {
         case MQTT_CONNECTED: {
           INFO("MQTT_CONNECT_SUCCESS %s ", _mqttDevice.c_str());
           mqtt.subscribe(_mqttSubscribedTo);
+          deviceConnect();
           break;
         }
         case MQTT_DISCONNECTED: {
           WARN("MQTT_DISCONNECTED %s ", _mqttDevice.c_str());
+          deviceDisconnect();
           break;
         }
         case MQTT_SUBSCRIBE_SUCCESS: {
@@ -210,7 +205,6 @@ Joystick2Mqtt::Signal Joystick2Mqtt::waitSignal(uint32_t timeout) {
   maxFd += 1;
 
   retval = select(maxFd, &rfds, NULL, &efds, &tv);
-  INFO(" return %d ", retval);
   if (retval < 0) {
     WARN(" select() : error : %s (%d)", strerror(errno), errno);
     returnSignal = SELECT_ERROR;
@@ -234,7 +228,6 @@ Joystick2Mqtt::Signal Joystick2Mqtt::waitSignal(uint32_t timeout) {
     TRACE(" timeout %llu", Sys::millis());
     returnSignal = TIMEOUT;
   }
-
   return (Signal)returnSignal;
 }
 
@@ -263,7 +256,7 @@ Erc Joystick2Mqtt::deviceConnect() {
   _axis = (int*)calloc(_axes, sizeof(int));
   _button = (char*)calloc(_buttons, sizeof(char));
 
-  INFO("Driver version is %d.%d.%d.\n", version >> 16, (version >> 8) & 0xff,
+  INFO("Driver version is %d.%d.%d.", version >> 16, (version >> 8) & 0xff,
        version & 0xff);
   INFO(" Axes : %d Buttons : %d ", axes, buttons);
   _deviceConnected = true;
@@ -282,7 +275,9 @@ void Joystick2Mqtt::deviceRxd() {
 
   while (true) {
     struct js_event js;
+    fflush(stdout);
     erc = read(_deviceFd, &js, sizeof(struct js_event));
+    fflush(stdout);
     if (erc == sizeof(struct js_event)) {
       switch (js.type & ~JS_EVENT_INIT) {
         case JS_EVENT_BUTTON:
@@ -305,6 +300,7 @@ void Joystick2Mqtt::deviceRxd() {
       if (errno == EAGAIN || errno == EWOULDBLOCK) return;
       DEBUG(" read returns %d => errno : %d = %s", erc, errno, strerror(errno));
       signal(DEVICE_ERROR);
+      return;
     } else {
       return;
     }

@@ -2,12 +2,21 @@
 const char* mqttConnectionStates[] = {"MS_CONNECTED", "MS_DISCONNECTED",
                                       "MS_CONNECTING", "MS_DISCONNECTING"};
 
-Mqtt::Mqtt() {
-  _connectionState = MS_DISCONNECTED;
-  _connection = "tcp://test.mosquitto.org:1883";
-}
+Mqtt::Mqtt() { _connectionState = MS_DISCONNECTED; }
 
 Mqtt::~Mqtt() {}
+
+void Mqtt::config(JsonObject& conf) {
+  _connection = conf["connection"] | "tcp://test.mosquitto.org";
+  _lastWillMessage = conf["LW"]["message"] | "false";
+  _lastWillQos = conf["LW"]["qos"] | 0;
+  string defaultTopic = "src/";
+  defaultTopic += Sys::hostname();
+  defaultTopic += "/system/alive";
+  _lastWillTopic = conf["LW"]["topic"] | defaultTopic;
+  _lastWillRetain = conf["LW"]["retain"] | false;
+  _keepAliveInterval = conf["keepAliveInterval"] | 20;
+};
 
 int Mqtt::lastWill(string topic, string message, int qos, bool retain) {
   _lastWillMessage = message;
@@ -17,10 +26,6 @@ int Mqtt::lastWill(string topic, string message, int qos, bool retain) {
   return 0;
 }
 
-int Mqtt::connection(string connectionString) {
-  _connection = connectionString;
-  return 0;
-}
 int Mqtt::client(string cl) {
   _clientId = cl;
   return 0;
@@ -36,10 +41,12 @@ void Mqtt::state(MqttConnectionState newState) {
        mqttConnectionStates[_connectionState], mqttConnectionStates[newState]);
 
   if (_connectionState != MS_CONNECTED && newState == MS_CONNECTED) {
-    _stateChangeCallback(_stateChangeContext, MS_CONNECTED);
+    if (_stateChangeCallback)
+      _stateChangeCallback(_stateChangeContext, MS_CONNECTED);
   } else if (_connectionState != MS_DISCONNECTED &&
              newState == MS_DISCONNECTED) {
-    _stateChangeCallback(_stateChangeContext, MS_DISCONNECTED);
+    if (_stateChangeCallback)
+      _stateChangeCallback(_stateChangeContext, MS_DISCONNECTED);
   }
   _connectionState = newState;
 }
@@ -48,8 +55,10 @@ Mqtt::MqttConnectionState Mqtt::state() { return _connectionState; }
 
 int Mqtt::connect() {
   int rc;
-  if (_connectionState == MS_CONNECTING || _connectionState == MS_CONNECTED)
-    return 0;
+  if (_connectionState == MS_CONNECTING || _connectionState == MS_CONNECTED) {
+    ERROR(" not in DISCONNECTED state ");
+    return ECONNREFUSED;
+  }
 
   MQTTAsync_connectOptions conn_opts = MQTTAsync_connectOptions_initializer;
   MQTTAsync_willOptions will_opts = MQTTAsync_willOptions_initializer;
@@ -76,7 +85,6 @@ int Mqtt::connect() {
     WARN("Failed to start connect, return code %d", rc);
     return ECONNREFUSED;
   }
-  state(MS_CONNECTING);
   return 0;
 }
 
@@ -127,7 +135,8 @@ int Mqtt::onMessage(void* context, char* topicName, int topicLen,
   string msg((char*)message->payload, message->payloadlen);
   string topic(topicName, topicLen);
 
-  me->_onMessageCallback(me->_onMessageContext, topic, msg);
+  if (me->_onMessageCallback)
+    me->_onMessageCallback(me->_onMessageContext, topic, msg);
 
   MQTTAsync_freeMessage(&message);
   MQTTAsync_free(topicName);

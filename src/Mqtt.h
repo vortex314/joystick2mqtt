@@ -1,5 +1,6 @@
 #ifndef _MQTT_H_
 #define _MQTT_H_
+#include <ArduinoJson.h>
 #include <Bytes.h>
 #include <Log.h>
 
@@ -32,9 +33,9 @@ class Mqtt {
   string _lastWillMessage;
   int _lastWillQos;
   bool _lastWillRetain;
-  StateChangeCallback _stateChangeCallback;
+  StateChangeCallback _stateChangeCallback = 0;
   void* _stateChangeContext;
-  OnMessageCallback _onMessageCallback;
+  OnMessageCallback _onMessageCallback = 0;
   void* _onMessageContext;
 
   static void onConnectionLost(void* context, char* cause);
@@ -55,6 +56,7 @@ class Mqtt {
   Mqtt();
   ~Mqtt();
   void init();
+  void config(JsonObject&);
   int connection(string);
   int client(string);
   int connect();

@@ -23,7 +23,10 @@ Joystick2Mqtt::~Joystick2Mqtt() {}
 
 void Joystick2Mqtt::setConfig(Config config) { _config = config; }
 
-void Joystick2Mqtt::device(string devJs) { _device = devJs; }
+void Joystick2Mqtt::device(string devJs) {
+  _joystick.device(devJs);
+  _device = devJs;
+}
 
 void Joystick2Mqtt::setLogFd(FILE* logFd) { _logFd = logFd; }
 
@@ -46,8 +49,8 @@ void Joystick2Mqtt::init() {
   }
 
   JsonObject jo = _config.root()["mqtt"];
-  mqtt.config(jo);
-  mqtt.onStateChange(this, [](void* context, Mqtt::MqttConnectionState state) {
+  _mqtt.config(jo);
+  _mqtt.onStateChange(this, [](void* context, Mqtt::MqttConnectionState state) {
     Joystick2Mqtt* me = (Joystick2Mqtt*)context;
     me->signal(state == Mqtt::MS_DISCONNECTED ? MQTT_DISCONNECTED
                                               : MQTT_CONNECTED);
@@ -72,35 +75,28 @@ void Joystick2Mqtt::run() {
   Timer deviceTimer;
 
   mqttConnectTimer.atInterval(2000).doThis([this]() {
-    if (mqtt.state() == Mqtt::MS_DISCONNECTED) {
-      mqtt.connect();
+    if (_mqtt.state() == Mqtt::MS_DISCONNECTED) {
+      _mqtt.connect();
     }
   });
   deviceConnectTimer.atInterval(5000).doThis([this]() {
-    if (!_deviceConnected && mqtt.state() == Mqtt::MS_CONNECTED) {
-      deviceConnect();
+    if (!_joystick.connected() && _mqtt.state() == Mqtt::MS_CONNECTED) {
+      _joystick.connect();
     }
   });
   mqttPublishTimer.atInterval(1000).doThis([this]() {
     std::string sUpTime = std::to_string((Sys::millis() - _startTime) / 1000);
-    mqtt.publish("src/" + _mqttDevice + "/" + _mqttObject + "/alive", "true", 0,
-                 0);
-    mqtt.publish("src/" + _mqttDevice + "/system/upTime", sUpTime, 0, 0);
-    mqtt.publish("src/" + _mqttDevice + "/" + _mqttObject, _device, 0, 0);
+    _mqtt.publish("src/" + _mqttDevice + "/" + _mqttObject + "/alive", "true",
+                  0, 0);
+    _mqtt.publish("src/" + _mqttDevice + "/system/upTime", sUpTime, 0, 0);
+    _mqtt.publish("src/" + _mqttDevice + "/" + _mqttObject, _device, 0, 0);
   });
   deviceTimer.atInterval(_deviceExistTimer).doThis([this]() {
-    struct stat buf;
-    if (lstat(_device.c_str(), &buf) < 0) {
-      INFO(" lstat failed");
-      deviceDisconnect();
-      WARN(" device %s disconnnected", _device.c_str());
-    } else {
-      INFO(" %s exists ", _device.c_str());
-    }
-    mqtt.publish("src/" + _mqttDevice + "/" + _mqttObject + "/connected",
-                 _deviceConnected ? "true" : "false", 0, 0);
+    if (!_joystick.exists()) _joystick.disconnect();
+    _mqtt.publish("src/" + _mqttDevice + "/" + _mqttObject + "/connected",
+                  _joystick.connected() ? "true" : "false", 0, 0);
   });
-  if (mqtt.state() == Mqtt::MS_DISCONNECTED) mqtt.connect();
+  if (_mqtt.state() == Mqtt::MS_DISCONNECTED) _mqtt.connect();
   while (true) {
     while (true) {
       Signal s = waitSignal(1000);
@@ -115,22 +111,34 @@ void Joystick2Mqtt::run() {
           break;
         }
         case DEVICE_RXD: {
-          deviceRxd();
+          Joystick::EventClass cls;
+          int instance;
+          int value;
+          while (_joystick.getEvent(cls, instance, value) == 0) {
+            string_format(_value, "%d", value);
+            if (cls == Joystick::EV_BUTTON)
+              string_format(_topic, "%s/button%d", _mqttSrc.c_str(), instance);
+            else if (cls == Joystick::EV_AXIS)
+              string_format(_topic, "%s/axis%d", _mqttSrc.c_str(), instance);
+            else
+              WARN(" unexpected event %d = %d ", instance, value);
+            _mqtt.publish(_topic, _value, 0, 0);
+          }
           break;
         }
         case DEVICE_ERROR: {
-          deviceDisconnect();
+          _joystick.disconnect();
           break;
         }
         case MQTT_CONNECTED: {
           INFO("MQTT_CONNECT_SUCCESS %s ", _mqttDevice.c_str());
-          mqtt.subscribe(_mqttSubscribedTo);
-          deviceConnect();
+          _mqtt.subscribe(_mqttSubscribedTo);
+          _joystick.connect();
           break;
         }
         case MQTT_DISCONNECTED: {
           WARN("MQTT_DISCONNECTED %s ", _mqttDevice.c_str());
-          deviceDisconnect();
+          _joystick.disconnect();
           break;
         }
         case MQTT_SUBSCRIBE_SUCCESS: {
@@ -139,7 +147,7 @@ void Joystick2Mqtt::run() {
         }
         case MQTT_SUBSCRIBE_FAIL: {
           WARN("MQTT_SUBSCRIBE_FAIL %s ", _mqttDevice.c_str());
-          mqtt.disconnect();
+          _mqtt.disconnect();
           break;
         }
         case MQTT_ERROR: {
@@ -193,15 +201,15 @@ Joystick2Mqtt::Signal Joystick2Mqtt::waitSignal(uint32_t timeout) {
   FD_ZERO(&rfds);
   FD_ZERO(&wfds);
   FD_ZERO(&efds);
-  if (_deviceConnected) {
-    FD_SET(_deviceFd, &rfds);
-    FD_SET(_deviceFd, &efds);
+  if (_joystick.connected()) {
+    FD_SET(_joystick.fd, &rfds);
+    FD_SET(_joystick.fd, &efds);
   }
   if (_signalFd[0]) {
     FD_SET(_signalFd[0], &rfds);
     FD_SET(_signalFd[0], &efds);
   }
-  int maxFd = _deviceFd < _signalFd[0] ? _signalFd[0] : _deviceFd;
+  int maxFd = _joystick.fd < _signalFd[0] ? _signalFd[0] : _joystick.fd;
   maxFd += 1;
 
   retval = select(maxFd, &rfds, NULL, &efds, &tv);
@@ -209,14 +217,14 @@ Joystick2Mqtt::Signal Joystick2Mqtt::waitSignal(uint32_t timeout) {
     WARN(" select() : error : %s (%d)", strerror(errno), errno);
     returnSignal = SELECT_ERROR;
   } else if (retval > 0) {  // one of the fd was set
-    if (FD_ISSET(_deviceFd, &rfds)) {
+    if (FD_ISSET(_joystick.fd, &rfds)) {
       returnSignal = DEVICE_RXD;
     }
     if (FD_ISSET(_signalFd[0], &rfds)) {
       ::read(_signalFd[0], &buffer, 1);  // read 1 event
       returnSignal = (Signal)buffer;
     }
-    if (FD_ISSET(_deviceFd, &efds)) {
+    if (FD_ISSET(_joystick.fd, &efds)) {
       WARN("device  error : %s (%d)", strerror(errno), errno);
       returnSignal = DEVICE_ERROR;
     }
@@ -229,80 +237,4 @@ Joystick2Mqtt::Signal Joystick2Mqtt::waitSignal(uint32_t timeout) {
     returnSignal = TIMEOUT;
   }
   return (Signal)returnSignal;
-}
-
-Erc Joystick2Mqtt::deviceConnect() {
-  INFO("Connecting to '%s' ....", _device.c_str());
-  _deviceFd = ::open(_device.c_str(), O_EXCL | O_RDWR | O_NOCTTY | O_NDELAY);
-
-  if (_deviceFd == -1) {
-    ERROR("connect: Unable to open '%s' errno : %d : %s ", _device.c_str(),
-          errno, strerror(errno));
-    _deviceFd = 0;
-    return errno;
-  }
-
-  INFO("open '%s' succeeded.fd=%d", _device.c_str(), _deviceFd);
-  int version = 0x000800;
-  unsigned char axes = 2;
-  unsigned char buttons = 2;
-#define NAME_LENGTH 128
-  char name[NAME_LENGTH] = "Unknown";
-
-  ioctl(_deviceFd, JSIOCGVERSION, &version);
-  ioctl(_deviceFd, JSIOCGAXES, &axes);
-  ioctl(_deviceFd, JSIOCGBUTTONS, &buttons);
-  ioctl(_deviceFd, JSIOCGNAME(NAME_LENGTH), name);
-  _axis = (int*)calloc(_axes, sizeof(int));
-  _button = (char*)calloc(_buttons, sizeof(char));
-
-  INFO("Driver version is %d.%d.%d.", version >> 16, (version >> 8) & 0xff,
-       version & 0xff);
-  INFO(" Axes : %d Buttons : %d ", axes, buttons);
-  _deviceConnected = true;
-  return E_OK;
-}
-
-void Joystick2Mqtt::deviceDisconnect() {
-  close(_deviceFd);
-  _deviceFd = 0;
-  _deviceConnected = false;
-}
-
-void Joystick2Mqtt::deviceRxd() {
-  if (!_deviceConnected) return;
-  int erc;
-
-  while (true) {
-    struct js_event js;
-    fflush(stdout);
-    erc = read(_deviceFd, &js, sizeof(struct js_event));
-    fflush(stdout);
-    if (erc == sizeof(struct js_event)) {
-      switch (js.type & ~JS_EVENT_INIT) {
-        case JS_EVENT_BUTTON:
-          INFO(" button : %d = %d ", js.number, js.value);
-          string_format(_topic, "%s/button%d", _mqttSrc.c_str(), js.number);
-          string_format(_value, "%d", js.value);
-          mqtt.publish(_topic, _value, 0, 0);
-          _button[js.number] = js.value;
-          break;
-        case JS_EVENT_AXIS:
-          INFO(" axis : %d = %d ", js.number, js.value);
-          string_format(_topic, "%s/axis%d", _mqttSrc.c_str(), js.number);
-          string_format(_value, "%d", js.value);
-          mqtt.publish(_topic, _value, 0, 0);
-          _axis[js.number] = js.value;
-          break;
-      }
-
-    } else if (erc < 0) {
-      if (errno == EAGAIN || errno == EWOULDBLOCK) return;
-      DEBUG(" read returns %d => errno : %d = %s", erc, errno, strerror(errno));
-      signal(DEVICE_ERROR);
-      return;
-    } else {
-      return;
-    }
-  }
 }

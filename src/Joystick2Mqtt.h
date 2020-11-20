@@ -4,6 +4,7 @@
 // For convenience
 #include <Bytes.h>
 #include <Erc.h>
+#include <Joystick.h>
 #include <Mqtt.h>
 #include <Sys.h>
 #include <Timer.h>
@@ -25,23 +26,15 @@
 using namespace std;
 
 class Joystick2Mqtt {
+  Joystick _joystick;
+  Mqtt _mqtt;
+
   string _device;       // /dev/input/jsx
   string _deviceShort;  // jsx
-  int _deviceFd;
   CircBuf _deviceBuffer;
   uint32_t _deviceExistTimer = 1000;
 
-  unsigned char _axes = 2;
-  unsigned char _buttons = 2;
-  int* _axis;
-  char* _button;
-
-  bool _deviceConnected = false;
-
-  Mqtt mqtt;
-
   int _signalFd[2];  // pipe fd to wakeup in select
-  // SERIAL
 
   // MQTT
   StaticJsonDocument<2048> _jsonDocument;
@@ -59,12 +52,6 @@ class Joystick2Mqtt {
   string _mqttSubscribedTo;
 
   Config _config;
-
-  typedef enum { JSON_OBJECT, JSON_ARRAY, PROTOBUF } Protocol;
-  Protocol _protocol;
-
-  typedef enum { CRC_ON, CRC_OFF } Crc;
-  Crc _crc;
 
   FILE* _logFd;
 
@@ -99,9 +86,6 @@ class Joystick2Mqtt {
   void setConfig(Config config);
   void device(string devJs);
   void setLogFd(FILE*);
-  Erc deviceConnect();
-  void deviceDisconnect();
-  void deviceRxd();
 };
 
 #endif  // SERIAL2MQTT_H

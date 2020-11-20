@@ -1,12 +1,18 @@
 {
     "mqtt": {
         "connection": "tcp://localhost:1883",
-        "keepAliveInterval":20,
-        "willMessage":"dead",
-        "willTopic":"src/pcdell/js0/alive"
+        "keepAliveInterval": 20,
+        "LW": {
+            "message": "false",
+            "qos": 1,
+            "retain": false
+        }
     },
     "joystick": {
-        "devices" : ["/dev/input/js0"],
-        "timeout" : 1000
+        "devices": [
+            "/dev/input/js0",
+            "/dev/input/js1"
+        ],
+        "timeout": 1000
     }
 }

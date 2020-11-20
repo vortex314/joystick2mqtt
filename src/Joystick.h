@@ -16,25 +16,27 @@ using namespace std;
 class Joystick {
  public:
   typedef void (*EventHandler)(int kind, int value);
+  typedef enum { EV_BUTTON, EV_AXIS, EV_INIT } EventClass;
 
  private:
   string _device;
-  bool _deviceConnected;
+  bool _connected;
   EventHandler _eventHandler;
   void* _eventHandlerContext;
   unsigned char _axes = 2;
   unsigned char _buttons = 2;
-  int* _axis;
-  char* _button;
+  int* _axis = 0;
+  char* _button = 0;
 
  public:
   int fd;
-  Joystick(string device);
-  int open();
-  int close();
+  Joystick();
+  int device(string);
+  int connect();
+  int disconnect();
   bool exists();
   bool connected();
   int onEvent(void* context, EventHandler handler);
-  int getEvent(int& kind, int& value);
+  int getEvent(EventClass& ev, int& instance, int& value);
 };
 #endif

@@ -4,7 +4,7 @@ project(joystick2mqtt VERSION 0.1.0)
 include(CTest)
 enable_testing()
 
-add_executable(joystick2mqtt  src/Main.cpp src/Joystick2Mqtt.cpp src/Sys.cpp src/Timer.cpp src/Mqtt.cpp)
+add_executable(joystick2mqtt  src/Main.cpp src/Joystick2Mqtt.cpp src/Sys.cpp src/Timer.cpp src/Mqtt.cpp src/Joystick.cpp) 
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

@@ -61,7 +61,7 @@ class Mqtt {
   int client(string);
   int connect();
   int disconnect();
-  int publish(string topic, string message, int qos, bool retain);
+  int publish(string topic, string message, int qos = 0, bool retain = false);
   int publish(string topic, Bytes message, int qos, bool retain);
   int subscribe(string topic);
   int lastWill(string topic, string message, int qos, bool retain);

@@ -16,8 +16,7 @@ const char* signalString[] = {"PIPE_ERROR",
                               "MQTT_ERROR",
                               "TIMEOUT"};
 
-Joystick2Mqtt::Joystick2Mqtt()
-    : _deviceBuffer(2048), _jsonDocument(), _msg(1024) {}
+Joystick2Mqtt::Joystick2Mqtt() {}
 
 Joystick2Mqtt::~Joystick2Mqtt() {}
 
@@ -40,9 +39,6 @@ void Joystick2Mqtt::init() {
   _mqttClientId = _mqttObject + std::to_string(getpid());
   INFO(" MQTT device : %s object : %s ", _mqttDevice.c_str(),
        _mqttObject.c_str());
-  string willTopicDefault;
-  string_format(willTopicDefault, "src/%s/%s/alive", _mqttDevice.c_str(),
-                _mqttObject);
 
   if (pipe(_signalFd) < 0) {
     INFO("Failed to create pipe: %s (%d)", strerror(errno), errno);
@@ -86,15 +82,14 @@ void Joystick2Mqtt::run() {
   });
   mqttPublishTimer.atInterval(1000).doThis([this]() {
     std::string sUpTime = std::to_string((Sys::millis() - _startTime) / 1000);
-    _mqtt.publish("src/" + _mqttDevice + "/" + _mqttObject + "/alive", "true",
-                  0, 0);
-    _mqtt.publish("src/" + _mqttDevice + "/system/upTime", sUpTime, 0, 0);
-    _mqtt.publish("src/" + _mqttDevice + "/" + _mqttObject, _device, 0, 0);
+    _mqtt.publish(_mqttSrc + "/alive", "true");
+    _mqtt.publish("src/" + _mqttDevice + "/system/upTime", sUpTime);
+    _mqtt.publish(_mqttSrc + "/device", _device);
   });
   deviceTimer.atInterval(_deviceExistTimer).doThis([this]() {
     if (!_joystick.exists()) _joystick.disconnect();
-    _mqtt.publish("src/" + _mqttDevice + "/" + _mqttObject + "/connected",
-                  _joystick.connected() ? "true" : "false", 0, 0);
+    _mqtt.publish(_mqttSrc + "/connected",
+                  _joystick.connected() ? "true" : "false");
   });
   if (_mqtt.state() == Mqtt::MS_DISCONNECTED) _mqtt.connect();
   while (true) {
@@ -122,7 +117,7 @@ void Joystick2Mqtt::run() {
               string_format(_topic, "%s/axis%d", _mqttSrc.c_str(), instance);
             else
               WARN(" unexpected event %d = %d ", instance, value);
-            _mqtt.publish(_topic, _value, 0, 0);
+            _mqtt.publish(_topic, _value);
           }
           break;
         }

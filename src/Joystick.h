@@ -29,7 +29,7 @@ class Joystick {
   char* _button = 0;
 
  public:
-  int fd;
+  int fd = -1;
   Joystick();
   int device(string);
   int connect();

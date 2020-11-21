@@ -13,7 +13,7 @@ int Joystick::connect() {
   if (fd == -1) {
     ERROR("connect: Unable to open '%s' errno : %d : %s ", _device.c_str(),
           errno, strerror(errno));
-    fd = 0;
+    fd = -1;
     return errno;
   }
 

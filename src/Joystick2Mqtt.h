@@ -31,13 +31,11 @@ class Joystick2Mqtt {
 
   string _device;       // /dev/input/jsx
   string _deviceShort;  // jsx
-  CircBuf _deviceBuffer;
   uint32_t _deviceExistTimer = 1000;
 
   int _signalFd[2];  // pipe fd to wakeup in select
 
   // MQTT
-  StaticJsonDocument<2048> _jsonDocument;
 
   string _mqttDevice;  // hostname
   string _mqttObject;  // jsx
@@ -46,9 +44,6 @@ class Joystick2Mqtt {
   uint64_t _startTime;
   string _topic;
   string _value;
-  Bytes _msg;
-
-  //	bool _mqttConnected=false;
   string _mqttSubscribedTo;
 
   Config _config;

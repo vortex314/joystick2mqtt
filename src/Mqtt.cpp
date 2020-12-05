@@ -7,7 +7,7 @@ Mqtt::Mqtt() { _connectionState = MS_DISCONNECTED; }
 Mqtt::~Mqtt() {}
 
 void Mqtt::config(JsonObject& conf) {
-  _connection = conf["connection"] | "tcp://test.mosquitto.org";
+  _connection = conf["connection"] | "tcp://limero.ddns.net";
   _lastWillMessage = conf["LW"]["message"] | "false";
   _lastWillQos = conf["LW"]["qos"] | 0;
   string defaultTopic = "src/";

@@ -1,124 +1,130 @@
-#include <stdio.h>
-#include <Log.h>
 #include <Config.h>
-#include <Joystick2Mqtt.h>
-#include <thread>
-
-#define DEFAULT_CONFIG "joystick2mqtt.json"
-
-void overrideConfig(Config& config,int argc, char **argv);
-
+#include <Hardware.h>
+#include <Joystick.h>
+#include <Log.h>
+#include <MqttPaho.h>
+#include <limero.h>
+#include <stdio.h>
+#include <unistd.h>
 Log logger(2048);
-//Config config;
-#define MAX_PORT	20
+Thread mainThread("main");
+MqttPaho mqtt(mainThread);
+Thread deviceThread("device");
+Joystick joystick(deviceThread); // blocking thread
+StaticJsonDocument<10240> jsonDoc;
+/*
+  load configuration file into JsonObject
+*/
+bool loadConfig(JsonDocument &doc, const char *name) {
+  FILE *f = fopen(name, "rb");
+  if (f == NULL) {
+    ERROR(" cannot open config file : %s", name);
+    return false;
+  }
+  fseek(f, 0, SEEK_END);
+  long fsize = ftell(f);
+  fseek(f, 0, SEEK_SET); /* same as rewind(f); */
 
-std::string logFile="";
-FILE* logFd=0;
+  char *string = (char *)malloc(fsize + 1);
+  fread(string, 1, fsize, f);
+  fclose(f);
 
-void myLogFunction(char* s,uint32_t length)
-{
-    fprintf(logFd,"%s\n",s);
-    fflush(logFd);
-    fprintf(stdout,"%s\r\n",s);
+  string[fsize] = 0;
+
+  // Deserialize the JSON document
+  DeserializationError error = deserializeJson(doc, string);
+  if (error) {
+    ERROR(" JSON parsing config file : %s failed.", name);
+    return false;
+  }
+  return true;
+}
+/*
+
+*/
+FILE *logFd = 0;
+
+void myLogFunction(char *s, uint32_t length) {
+  fprintf(logFd, "%s\n", s);
+  fflush(logFd);
+  fprintf(stdout, "%s\r\n", s);
 }
 
-Joystick2Mqtt joystick2mqtt[MAX_PORT];
-
-void SetThreadName(std::thread* thread, const char* threadName)
-{
-    auto handle = thread->native_handle();
-    pthread_setname_np(handle,threadName);
+void myLogInit(const char *logFile) {
+  logFd = fopen(logFile, "a");
+  if (logFd == NULL) {
+    WARN("open logfile %s failed : %d %s", logFile, errno, strerror(errno));
+  } else {
+    logger.writer(myLogFunction);
+  }
 }
 
-int main(int argc, char **argv)
-{
+void commandArguments(JsonObject config, int argc, char **argv) {
+  int opt;
 
-    std::thread threads[MAX_PORT];
-    StaticJsonDocument<10240> jsonDoc;
-
-    Sys::init();
-    INFO("build : " __DATE__ " " __TIME__ );
-    char cwd[256];
-    getcwd(cwd,sizeof(cwd));
-    INFO("current directory : %s ",cwd);
-    if ( argc > 1 ) {
-        INFO(" loading config file : %s ",argv[1]);
-        config.loadFile(argv[1]);
-    } else {
-        INFO(" load default config : %s",DEFAULT_CONFIG);
-        config.loadFile(DEFAULT_CONFIG);
+  while ((opt = getopt(argc, argv, "f:m:l:v:")) != -1) {
+    switch (opt) {
+    case 'm':
+      config["mqtt"]["connection"] = optarg;
+      break;
+    case 'f':
+      config["configFile"] = optarg;
+      break;
+    case 'v': {
+      char logLevel = optarg[0];
+      config["log"]["level"] = logLevel;
+      break;
     }
-    overrideConfig(config,argc,argv);
-    if ( logFile.length()>0 ) {
-        INFO(" logging to file %s ", logFile.c_str());
-        logFd=fopen(logFile.c_str(),"w");
-        if ( logFd==NULL ) {
-            WARN(" open logfile %s failed : %d %s ",logFile.c_str(),errno, strerror(errno));
-        } else {
-            logger.writer(myLogFunction);
-        }
+    case 'l':
+      config["log"]["file"] = optarg;
+      break;
+    default: /* '?' */
+      fprintf(stderr,
+              "Usage: %s [-v(TDIWE)] [-f configFile] [-l logFile] [-m "
+              "mqtt_connection]\n",
+              argv[0]);
+      exit(EXIT_FAILURE);
     }
-
-    JsonArray joysticks = config.root()["joystick"]["devices"].as<JsonArray>() ;
-//	JsonArray		ports = jsonDoc.as<JsonArray>();
-
-    if ( joysticks.isNull() ) {
-        jsonDoc.add("/dev/input/js0");
-        joysticks = jsonDoc.as<JsonArray>();
-    }
-
-
-    for(uint32_t i=0; i<joysticks.size(); i++) {
-        std::string joystick=joysticks[i];
-        INFO(" configuring device : %s",joystick.c_str());
-        joystick2mqtt[i].device(joystick);
-        joystick2mqtt[i].setConfig(config);
-        joystick2mqtt[i].setLogFd(logFd);
-        joystick2mqtt[i].init();
-    }
-
-    for(uint32_t i=0; i<joysticks.size(); i++) {
-        threads[i] = std::thread([=]() {
-            INFO(" starting thread %d",i);
-            joystick2mqtt[i].run();
-        });
-        std::string port= joysticks[i];
-        SetThreadName(&threads[i],port.substr(8).c_str());
-    }
-
-
-    sleep(UINT32_MAX); // UINT32_MAX to sleep 'forever'
-    exit(0);
-
-    return 0;
+  }
 }
 
+int main(int argc, char **argv) {
+  Sys::init();
+  commandArguments(jsonDoc.as<JsonObject>(), argc, argv);
+  if (loadConfig(jsonDoc, "joystick2mqtt.json")) {
+    std::string jsonString;
+    serializeJsonPretty(jsonDoc, jsonString);
+    INFO(" config loaded : %s ", jsonString.c_str());
+  }
+  JsonObject config = jsonDoc["log"];
+  std::string level = config["level"] | "I";
+  logger.setLogLevel(level[0]);
+  if (config["file"]) {
+    std::string logFile = config["file"];
+    myLogInit(logFile.c_str());
+  }
 
-void overrideConfig(Config& config,int argc, char **argv)
-{
-    int  opt;
+  config = jsonDoc["mqtt"];
+  mqtt.config(config);
+  mqtt.init();
+  mqtt.connect();
 
-    while ((opt = getopt(argc, argv, "f:m:l:v:")) != -1) {
-        switch (opt) {
-        case 'm':
-            config.setNameSpace("mqtt");
-            config.set("host",optarg);
-            break;
-        case 'f':
-            config.loadFile(optarg);
-            break;
-        case 'v': {
-            char logLevel = optarg[0];
-            logger.setLogLevel(logLevel);
-            break;
-        }
-        case 'l':
-            logFile=optarg;
-            break;
-        default: /* '?' */
-            fprintf(stderr, "Usage: %s [-v(TDIWE)] [-f configFile] [-l logFile] [-m mqttHost]\n",
-                    argv[0]);
-            exit(EXIT_FAILURE);
-        }
-    }
+  config = jsonDoc["joystick"];
+  joystick.config(config);
+  joystick.init();
+
+  joystick.axisEvent >> [](const AxisEvent &ae) {
+    std::string topic = mqtt.srcPrefix + "axis/" + std::to_string(ae.axis);
+    std::string message = std::to_string(ae.value);
+    mqtt.outgoing.on({topic, message});
+  };
+
+  joystick.buttonEvent >> [](const ButtonEvent &ae) {
+    std::string topic = mqtt.srcPrefix + "button/" + std::to_string(ae.button);
+    std::string message = std::to_string(ae.value);
+    mqtt.outgoing.on({topic, message});
+  };
+
+  deviceThread.start();
+  mainThread.run();
 }

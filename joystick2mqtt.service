@@ -1,0 +1,15 @@
+[Unit]
+Description=Remote control PS4 to MQTT service
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+;User=root
+;Group=root
+ExecStart=/home/lieven/workspace/joystick2mqtt/build/joystick2mqtt 
+WorkingDirectory=/home/lieven/workspace/joystick2mqtt
+
+[Install]
+WantedBy=multi-user.target

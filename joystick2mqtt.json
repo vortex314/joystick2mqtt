@@ -1,0 +1,20 @@
+{
+    "mqtt": {
+        "connection": "tcp://limero.ddns.net",
+        "keepAliveInterval": 5,
+        "device": "joystick",
+        "LW": {
+            "topic": "src/joystick/system/alive",
+            "message": "false",
+            "qos": 1,
+            "retain": true
+        }
+    },
+    "joystick": {
+        "device": "/dev/input/js0"
+    },
+    "log": {
+        "level": "I",
+        "file": "js0.log"
+    }
+}

@@ -1,9 +1,11 @@
 #include <Joystick.h>
 
 Joystick::Joystick(Thread &thread, const char *name)
-    : Actor(thread), buttonEvent(20, "buttonEvent"), axisEvent(20, "axisEvent"),
+    : Actor(thread),
+      buttonEvent(20, "buttonEvent"),
+      axisEvent(20, "axisEvent"),
       deviceLookupTimer(thread, 2000, true, "deviceLookup"),
-      devicePollTimer(thread, 10, true, "devicePoll") {}
+      devicePollTimer(thread, 20, true, "devicePoll") {}
 
 bool Joystick::config(JsonObject &json) {
   std::string device = json["device"];
@@ -34,7 +36,7 @@ EventType pollFd(int fd, uint32_t timeout) {
   if (rc < 0) {
     WARN(" select() : error : %s (%d)", strerror(errno), errno);
     return ET_FAIL;
-  } else if (rc > 0) { // one of the fd was set
+  } else if (rc > 0) {  // one of the fd was set
     if (FD_ISSET(fd, &rfds)) {
       return ET_RXD;
     } else if (FD_ISSET(fd, &efds)) {
@@ -48,8 +50,7 @@ EventType pollFd(int fd, uint32_t timeout) {
 
 bool Joystick::init() {
   deviceLookupTimer >> [&](const TimerMsg &tm) {
-    if (exists() && connected())
-      return;
+    if (exists() && connected()) return;
     if (exists() && !connected()) {
       connect();
     } else if (!exists() && connected()) {
@@ -62,25 +63,25 @@ bool Joystick::init() {
     if (connected()) {
       EventType et;
       while (true) {
-        et = pollFd(_fd, 20);
+        et = pollFd(_fd, 10);
         switch (et) {
-        case ET_RXD: {
-          emitEvent();
-          break;
-        }
-        case ET_TIMEOUT: {
-          return;
-        }
-        case ET_FAIL: {
-          ERROR("select fail '%s' errno : %d : %s ", _device.c_str(), errno,
-                strerror(errno));
-          return;
-        }
-        case ET_ERROR: {
-          ERROR("select error '%s' errno : %d : %s ", _device.c_str(), errno,
-                strerror(errno));
-          return;
-        }
+          case ET_RXD: {
+            emitEvent();
+            break;
+          }
+          case ET_TIMEOUT: {
+            return;
+          }
+          case ET_FAIL: {
+            ERROR("select fail '%s' errno : %d : %s ", _device.c_str(), errno,
+                  strerror(errno));
+            return;
+          }
+          case ET_ERROR: {
+            ERROR("select error '%s' errno : %d : %s ", _device.c_str(), errno,
+                  strerror(errno));
+            return;
+          }
         }
       }
     }
@@ -93,8 +94,7 @@ void Joystick::emitEvent() {
     Joystick::EventClass cls;
     int instance;
     int value;
-    if (getEvent(cls, instance, value))
-      break;
+    if (getEvent(cls, instance, value)) break;
     if (cls == EV_AXIS) {
       axisEvent.on({instance, value});
     } else if (cls == EV_BUTTON) {
@@ -128,10 +128,8 @@ int Joystick::connect() {
   ioctl(_fd, JSIOCGBUTTONS, &buttons);
   ioctl(_fd, JSIOCGNAME(NAME_LENGTH), name);
 
-  if (_axis == 0)
-    _axis = (int *)calloc(_axes, sizeof(int));
-  if (_button == 0)
-    _button = (char *)calloc(_buttons, sizeof(char));
+  if (_axis == 0) _axis = (int *)calloc(_axes, sizeof(int));
+  if (_button == 0) _button = (char *)calloc(_buttons, sizeof(char));
 
   INFO("Driver version is %d.%d.%d.", version >> 16, (version >> 8) & 0xff,
        version & 0xff);
@@ -163,8 +161,7 @@ int Joystick::connect() {
 }
 
 int Joystick::disconnect() {
-  if (!_connected)
-    return 0;
+  if (!_connected) return 0;
   ::close(_fd);
   _fd = -1;
   _connected = false;

@@ -10,7 +10,7 @@ Log logger(2048);
 Thread mainThread("main");
 MqttPaho mqtt(mainThread);
 Thread deviceThread("device");
-Joystick joystick(deviceThread); // blocking thread
+Joystick joystick(deviceThread);  // blocking thread
 StaticJsonDocument<10240> jsonDoc;
 /*
   load configuration file into JsonObject
@@ -64,29 +64,31 @@ void commandArguments(JsonObject config, int argc, char **argv) {
 
   while ((opt = getopt(argc, argv, "f:m:l:v:")) != -1) {
     switch (opt) {
-    case 'm':
-      config["mqtt"]["connection"] = optarg;
-      break;
-    case 'f':
-      config["configFile"] = optarg;
-      break;
-    case 'v': {
-      char logLevel = optarg[0];
-      config["log"]["level"] = logLevel;
-      break;
-    }
-    case 'l':
-      config["log"]["file"] = optarg;
-      break;
-    default: /* '?' */
-      fprintf(stderr,
-              "Usage: %s [-v(TDIWE)] [-f configFile] [-l logFile] [-m "
-              "mqtt_connection]\n",
-              argv[0]);
-      exit(EXIT_FAILURE);
+      case 'm':
+        config["mqtt"]["connection"] = optarg;
+        break;
+      case 'f':
+        config["configFile"] = optarg;
+        break;
+      case 'v': {
+        char logLevel = optarg[0];
+        config["log"]["level"] = logLevel;
+        break;
+      }
+      case 'l':
+        config["log"]["file"] = optarg;
+        break;
+      default: /* '?' */
+        fprintf(stderr,
+                "Usage: %s [-v(TDIWE)] [-f configFile] [-l logFile] [-m "
+                "mqtt_connection]\n",
+                argv[0]);
+        exit(EXIT_FAILURE);
     }
   }
 }
+#include <LogFile.h>
+LogFile logFile("wiringMqtt", 5, 2000000);
 
 int main(int argc, char **argv) {
   Sys::init();
@@ -100,9 +102,16 @@ int main(int argc, char **argv) {
   std::string level = config["level"] | "I";
   logger.setLogLevel(level[0]);
   if (config["file"]) {
-    std::string logFile = config["file"];
-    myLogInit(logFile.c_str());
+    std::string prefix = config["file"];
+    logFile.prefix(prefix.c_str());
+    logger.writer(
+        [](char *line, unsigned int length) { logFile.append(line, length); });
+    if (config["console"]) {
+      bool consoleOn = config["console"];
+      logFile.console(consoleOn);
+    }
   }
+  INFO(" joystick2mqtt started. Build : %s ", __DATE__ " " __TIME__);
 
   config = jsonDoc["mqtt"];
   mqtt.config(config);

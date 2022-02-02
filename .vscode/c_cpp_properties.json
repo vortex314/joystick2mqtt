@@ -6,6 +6,10 @@
                 "${workspaceFolder}/../Common/",
                 "${workspaceFolder}/../ArduinoJson/src/",
                 "${workspaceFolder}/../paho.mqtt.c/src/",
+                "${workspaceFolder}/../hiredis/",
+                "${workspaceFolder}/../json/single_include/",
+                "${workspaceFolder}/../components/inc/",
+                "${workspaceFolder}/../components/linux/",
                 "${workspaceFolder}/src/"
             ],
             "defines": [

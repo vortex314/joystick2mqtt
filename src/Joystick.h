@@ -1,6 +1,6 @@
 #ifndef _JOYSTICK_H_
 #define _JOYSTICK_H_
-#include <ArduinoJson.h>
+#include <Config.h>
 #include <Log.h>
 #include <asm-generic/ioctls.h>
 #include <fcntl.h>
@@ -49,7 +49,7 @@ private:
 
 public:
   Joystick(Thread &thread, const char *name = "joystick");
-  bool config(JsonObject &json);
+  bool config(JsonObject &config);
   bool init();
   int connect();
   int disconnect();

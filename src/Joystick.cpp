@@ -5,11 +5,13 @@ Joystick::Joystick(Thread &thread, const char *name)
       buttonEvent(20, "buttonEvent"),
       axisEvent(20, "axisEvent"),
       deviceLookupTimer(thread, 2000, true, "deviceLookup"),
-      devicePollTimer(thread, 20, true, "devicePoll") {}
+      devicePollTimer(thread, 20, true, "devicePoll") {
+  buttonEvent.async(thread);
+  axisEvent.async(thread);
+}
 
-bool Joystick::config(JsonObject &json) {
-  std::string device = json["device"];
-  _device = device;
+bool Joystick::config(JsonObject &config) {
+  _device = config["device"] | "/dev/input/js0";
   return true;
 }
 typedef enum { ET_RXD, ET_TXD, ET_ERROR, ET_TIMEOUT, ET_FAIL } EventType;
@@ -44,7 +46,7 @@ EventType pollFd(int fd, uint32_t timeout) {
       return ET_ERROR;
     }
   }
-  TRACE(" timeout %llu", Sys::millis());
+  DEBUG(" timeout %llu", Sys::millis());
   return ET_TIMEOUT;
 }
 

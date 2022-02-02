@@ -6,11 +6,9 @@
             "type": "shell",
             "command": "make",
             "args": [
-                "-f",
-                "joystick2mqtt.mk"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/build"
             },
             "group": {
                 "kind": "build",

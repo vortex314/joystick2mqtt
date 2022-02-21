@@ -10,9 +10,10 @@ set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -g ")
 add_definitions(-DLINUX -std=c++11)
 # set(CMAKE_BUILD_TYPE Debug)
 
-set(COMPONENTS ../components)
-set(HIREDIS ../hiredis )
-set(JSON ../json)
+set(WS /home/lieven/workspace )
+set(COMPONENTS ${WS}/components)
+set(HIREDIS ${WS}/hiredis )
+set(JSON ${WS}/json)
 
 
 
@@ -67,7 +68,7 @@ target_link_libraries(joystick2mqtt
 
 target_link_libraries(joystick2redis 
         -lpthread 
-        -L ../../hiredis/ -lhiredis
+        -L${HIREDIS} -l:libhiredis.a
         -lrt 
         -pthread 
         -latomic )

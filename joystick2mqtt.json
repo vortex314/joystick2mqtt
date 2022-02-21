@@ -16,6 +16,6 @@
     "log": {
         "level": "I",
         "file": "log_joystick2mqtt.",
-        "console": true
+        "console": false
     }
 }
